@@ -39,7 +39,6 @@ std::vector<std::shared_ptr<Value>> build_topo(const std::shared_ptr<Value>& nod
         for (const auto& prev_node : node->prev) {
             build(prev_node);
             }
-        
         topo.push_back(node);
 
     };
