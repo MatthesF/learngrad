@@ -5,23 +5,37 @@
 #include <string>
 #include <vector>
 
-struct Value {
+struct ValueImpl {
     double value;
     double grad{0};
 
     std::string op;
-    std::vector<std::shared_ptr<Value>> prev;
+    std::vector<std::shared_ptr<ValueImpl>> prev;
     std::function<void()> backward;
 
-    explicit Value(double val) : value{val}, backward{[](){}} {}
+    ValueImpl(double val) : value{val}, backward{[](){}} {}
 };
 
-std::shared_ptr<Value> operator+(const std::shared_ptr<Value>& lhs,
-                                 const std::shared_ptr<Value>& rhs);
 
-std::shared_ptr<Value> operator*(const std::shared_ptr<Value>& lhs,
-                                 const std::shared_ptr<Value>& rhs);
+class Value {
+    std::shared_ptr<ValueImpl> ptr;
 
-std::vector<std::shared_ptr<Value>> build_topo(const std::shared_ptr<Value>& node);
+    public:
+        Value(double data): ptr{std::make_shared<ValueImpl>(data)}{};
 
-void backprop(const std::shared_ptr<Value>& root);
+        friend Value operator+(const Value& lhs, const Value& rhs);
+        friend Value operator*(const Value& lhs, const Value& rhs);
+        friend std::vector<std::shared_ptr<ValueImpl>> build_topo(const Value& node);
+        friend void backprop(const Value& root);
+
+        double val() const { return ptr->value; }
+        double grad() const { return ptr->grad; }
+};
+
+Value operator+(const Value& lhs, const Value& rhs);
+
+Value operator*(const Value& lhs, const Value& rhs);
+
+std::vector<std::shared_ptr<ValueImpl>> build_topo(const Value& node);
+
+void backprop(const Value& root);
