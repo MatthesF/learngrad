@@ -61,8 +61,8 @@ Value Value::tanh(){
     Value new_node{std::tanh(ptr->value)};
     new_node.ptr->prev = { ptr };
     new_node.ptr->op = "tanh";
-    new_node.ptr->backward = [=]() {
-        ptr->grad += new_node.ptr->grad*(1.0 - (new_node.ptr->value * new_node.ptr->value));
+    new_node.ptr->backward = [self = ptr, out = new_node.ptr]() {
+        self->grad += out->grad * (1.0 - (out->value * out->value));
     };
     return new_node;
 
