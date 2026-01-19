@@ -1,9 +1,10 @@
 #include "value.h"
 #include <set>
+#include <cmath>
 
 Value operator+(const Value& lhs, const Value& rhs)
 {
-    Value new_node{Value(lhs.ptr->value + rhs.ptr->value)};
+    Value new_node{lhs.ptr->value + rhs.ptr->value};
     new_node.ptr->prev.insert(new_node.ptr->prev.end(), {lhs.ptr, rhs.ptr});
     new_node.ptr->op = "+";
     new_node.ptr->backward = [=]() {
@@ -16,7 +17,7 @@ Value operator+(const Value& lhs, const Value& rhs)
 
 Value operator*(const Value& lhs, const Value& rhs)
 {
-    Value new_node{Value(lhs.ptr->value * rhs.ptr->value)};
+    Value new_node{lhs.ptr->value * rhs.ptr->value};
     new_node.ptr->prev.insert(new_node.ptr->prev.end(), {lhs.ptr, rhs.ptr});
     new_node.ptr->op = "*";
     new_node.ptr->backward = [=]() {
@@ -54,4 +55,15 @@ void backprop(const Value& root){
     for (auto it{nodes.rbegin()}; it != nodes.rend(); ++it){
         (*it)->backward();
     }
+}
+
+Value Value::tanh(){
+    Value new_node{std::tanh(ptr->value)};
+    new_node.ptr->prev = { ptr };
+    new_node.ptr->op = "tanh";
+    new_node.ptr->backward = [=]() {
+        ptr->grad += new_node.ptr->grad*(1.0 - (new_node.ptr->value * new_node.ptr->value));
+    };
+    return new_node;
+
 }

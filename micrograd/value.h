@@ -30,11 +30,14 @@ class Value {
 
         double val() const { return ptr->value; }
         double grad() const { return ptr->grad; }
+
+        Value tanh();
 };
 
 Value operator+(const Value& lhs, const Value& rhs);
 
 Value operator*(const Value& lhs, const Value& rhs);
+
 
 std::vector<std::shared_ptr<ValueImpl>> build_topo(const Value& node);
 
