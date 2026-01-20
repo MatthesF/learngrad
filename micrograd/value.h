@@ -25,6 +25,10 @@ class Value {
 
         friend Value operator+(const Value& lhs, const Value& rhs);
         friend Value operator*(const Value& lhs, const Value& rhs);
+        friend Value operator-(const Value& node);
+        friend Value operator-(const Value& lhs, const Value& rhs);
+        friend Value operator/(const Value& lhs, const Value& rhs);
+
         friend std::vector<std::shared_ptr<ValueImpl>> build_topo(const Value& node);
         friend void backprop(const Value& root);
 
@@ -32,12 +36,18 @@ class Value {
         double grad() const { return ptr->grad; }
 
         Value tanh();
+        Value pow(double exponent);
 };
 
 Value operator+(const Value& lhs, const Value& rhs);
 
 Value operator*(const Value& lhs, const Value& rhs);
 
+Value operator-(const Value& lhs, const Value& rhs);
+
+Value operator-(const Value& node);
+
+Value operator/(const Value& lhs, const Value& rhs);
 
 std::vector<std::shared_ptr<ValueImpl>> build_topo(const Value& node);
 

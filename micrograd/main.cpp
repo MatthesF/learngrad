@@ -14,18 +14,31 @@ int main() {
     // Result: d = a * c + b
     Value d = a * c + b;
 
+    Value f = d.tanh();
+
+    Value n = -f;
+
+    Value m = n-a;
+
     // 3. Backprop
-    backprop(d);
+    backprop(m);
 
     // 4. Print Results
     // Expected: d = -4 * (-2) + 2 = 10
     std::cout << "d value: " << d.val() << " (Expected: 10)" << std::endl;
+
+    std::cout << "f value: " << f.val() << " (Expected: ca. 1)" << std::endl;
+
+    std::cout << "n value: " << n.val() << " (Expected: ca. -1)" << std::endl;
+
+    std::cout << "m value: " << m.val() << " (Expected: ca. 3)" << std::endl;
+
     
-    // Expected: da = c + a*1 = -2 + (-4) = -6
-    std::cout << "a grad: "  << a.grad()  << " (Expected: -6)" << std::endl;
+    std::cout << "a grad: "  << a.grad()  << std::endl;
     
-    // Expected: db = a*1 + 1 = -4 + 1 = -3
-    std::cout << "b grad: "  << b.grad()  << " (Expected: -3)" << std::endl;
+    std::cout << "b grad: "  << b.grad() << std::endl;
+
+    std::cout << "f grad: "  << f.grad() << std::endl;
 
     return 0;
 }
