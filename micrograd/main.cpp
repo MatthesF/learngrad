@@ -1,44 +1,50 @@
-#include "value.h"
-
 #include <iostream>
-#include <memory>
+#include <vector>
+#include "value.h"
+#include "nn.h"
 
 int main() {
-    // 1. Inputs
-    Value a = -4.0;
-    Value b = 2.0;
+    // 1. DATA (XOR: 0,0->-1 | 0,1->1 | 1,0->1 | 1,1->-1)
+    std::vector<std::vector<Value>> inputs = {
+        {0.0, 0.0}, {0.0, 1.0}, {1.0, 0.0}, {1.0, 1.0}
+    };
+    std::vector<Value> targets = {-1.0, 1.0, 1.0, -1.0};
 
-    // 2. Math: d = a * (a + b) + b
-    // Intermediate: c = a + b
-    Value c = a + b;
-    // Result: d = a * c + b
-    Value d = a * c + b;
+    // 2. MODEL (2 inputs -> 4 neurons in hidden -> 1 output)
+    MLP model(2, {4, 1});
 
-    Value f = d.tanh();
-
-    Value n = -f;
-
-    Value m = n-a;
-
-    // 3. Backprop
-    backprop(m);
-
-    // 4. Print Results
-    // Expected: d = -4 * (-2) + 2 = 10
-    std::cout << "d value: " << d.val() << " (Expected: 10)" << std::endl;
-
-    std::cout << "f value: " << f.val() << " (Expected: ca. 1)" << std::endl;
-
-    std::cout << "n value: " << n.val() << " (Expected: ca. -1)" << std::endl;
-
-    std::cout << "m value: " << m.val() << " (Expected: ca. 3)" << std::endl;
-
+    // 3. TRAINING
+    std::cout << "Starting training..." << std::endl;
     
-    std::cout << "a grad: "  << a.grad()  << std::endl;
-    
-    std::cout << "b grad: "  << b.grad() << std::endl;
+    for (int k = 0; k < 500; ++k) {
+        
+        // A. Forward pass and calculate error (Loss)
+        Value loss = 0.0;
+        for (size_t i = 0; i < inputs.size(); ++i) {
+            Value prediction = model(inputs[i])[0];
+            Value diff = prediction - targets[i];
+            loss = loss + diff.pow(2);
+        }
 
-    std::cout << "f grad: "  << f.grad() << std::endl;
+        // B. Update network
+        model.zero_grad();          // Reset old gradients
+        backprop(loss);             // Calculate new gradients
+        model.update(0.1);          // Adjust weights (Learning rate = 0.1)
+
+        // Print status
+        if (k % 50 == 0) std::cout << "Step " << k << " | Loss: " << loss.val() << std::endl;
+    }
+
+    // 4. TEST
+    std::cout << "\n--- Results ---" << std::endl;
+    for (size_t i = 0; i < inputs.size(); ++i) {
+        double pred = model(inputs[i])[0].val();
+        double target = targets[i].val();
+        
+        std::cout << "Input: " << inputs[i][0].val() << "," << inputs[i][1].val() 
+                  << " -> Target: " << target 
+                  << " -> Pred: " << pred << std::endl;
+    }
 
     return 0;
 }
