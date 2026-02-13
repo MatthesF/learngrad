@@ -7,10 +7,9 @@ Value operator+(const Value& lhs, const Value& rhs)
     Value new_node{lhs.ptr->value + rhs.ptr->value};
     new_node.ptr->prev.insert(new_node.ptr->prev.end(), {lhs.ptr, rhs.ptr});
     new_node.ptr->op = "+";
-    new_node.ptr->backward = [=]() {
-        lhs.ptr->grad += new_node.ptr->grad;
-        rhs.ptr->grad += new_node.ptr->grad;
-    };
+    new_node.ptr->vjp_dependencies.reserve(2);
+    new_node.ptr->vjp_dependencies.emplace_back(lhs.ptr, 1.0);
+    new_node.ptr->vjp_dependencies.emplace_back(rhs.ptr, 1.0);
 
     return new_node;
 }
@@ -20,22 +19,32 @@ Value operator*(const Value& lhs, const Value& rhs)
     Value new_node{lhs.ptr->value * rhs.ptr->value};
     new_node.ptr->prev.insert(new_node.ptr->prev.end(), {lhs.ptr, rhs.ptr});
     new_node.ptr->op = "*";
-    new_node.ptr->backward = [=]() {
-        lhs.ptr->grad += rhs.ptr->value * new_node.ptr->grad;
-        rhs.ptr->grad += lhs.ptr->value * new_node.ptr->grad;
-    };
+    new_node.ptr->vjp_dependencies.reserve(2);
+    new_node.ptr->vjp_dependencies.emplace_back(lhs.ptr, rhs.ptr->value);
+    new_node.ptr->vjp_dependencies.emplace_back(rhs.ptr, lhs.ptr->value);
 
     return new_node;
 }
 
 Value operator-(const Value& node)
 {
-    return node*-1;
+    Value new_node{node.ptr->value * -1};
+    new_node.ptr->prev.insert(new_node.ptr->prev.end(), {node.ptr});
+    new_node.ptr->op = "-";
+    new_node.ptr->vjp_dependencies.reserve(1);
+    new_node.ptr->vjp_dependencies.emplace_back(node.ptr, -1.0);
+    return new_node;
 }
 
 Value operator-(const Value& lhs, const Value& rhs)
 {
-    return lhs+(rhs*-1);
+    Value new_node{lhs.ptr->value - rhs.ptr->value};
+    new_node.ptr->prev.insert(new_node.ptr->prev.end(), {lhs.ptr, rhs.ptr});
+    new_node.ptr->op = "-";
+    new_node.ptr->vjp_dependencies.reserve(2);
+    new_node.ptr->vjp_dependencies.emplace_back(lhs.ptr, 1.0);
+    new_node.ptr->vjp_dependencies.emplace_back(rhs.ptr, -1.0);
+    return new_node;
 }
 
 Value operator/(const Value& lhs, const Value& rhs)
@@ -43,10 +52,9 @@ Value operator/(const Value& lhs, const Value& rhs)
     Value new_node{lhs.ptr->value / rhs.ptr->value};
     new_node.ptr->prev.insert(new_node.ptr->prev.end(), {lhs.ptr, rhs.ptr});
     new_node.ptr->op = "/";
-    new_node.ptr->backward = [=]() {
-        lhs.ptr->grad += 1/rhs.ptr->value * new_node.ptr->grad;
-        rhs.ptr->grad += - lhs.ptr->value / (rhs.ptr->value*rhs.ptr->value) * new_node.ptr->grad;
-    };
+    new_node.ptr->vjp_dependencies.reserve(2);
+    new_node.ptr->vjp_dependencies.emplace_back(lhs.ptr, 1/rhs.ptr->value);
+    new_node.ptr->vjp_dependencies.emplace_back(rhs.ptr, - lhs.ptr->value / (rhs.ptr->value*rhs.ptr->value));
     return new_node;
 }
 
@@ -75,7 +83,9 @@ void backprop(const Value& root){
     root.ptr->grad = 1;
     auto nodes = build_topo(root);
     for (auto it{nodes.rbegin()}; it != nodes.rend(); ++it){
-        (*it)->backward();
+        for (const auto& vjp_dependency : (*it)->vjp_dependencies){
+            vjp_dependency.node->grad += vjp_dependency.local_grad * (*it)->grad;
+        }
     }
 }
 
@@ -83,9 +93,8 @@ Value Value::tanh(){
     Value new_node{std::tanh(ptr->value)};
     new_node.ptr->prev = { ptr };
     new_node.ptr->op = "tanh";
-    new_node.ptr->backward = [self = ptr, out = new_node.ptr]() {
-        self->grad += out->grad * (1.0 - (out->value * out->value));
-    };
+    new_node.ptr->vjp_dependencies.reserve(1);
+    new_node.ptr->vjp_dependencies.emplace_back(ptr, 1.0 - (new_node.ptr->value * new_node.ptr->value));
     return new_node;
 }
 
@@ -93,9 +102,8 @@ Value Value::pow(double exponent){
     Value new_node{std::pow(ptr->value,exponent)};
     new_node.ptr->prev = { ptr };
     new_node.ptr->op = "pow";
-    new_node.ptr->backward = [self = ptr, exp = exponent, out = new_node.ptr]() {
-        self->grad += out->grad * exp * std::pow(self->value,exp-1);
-    };
+    new_node.ptr->vjp_dependencies.reserve(1);
+    new_node.ptr->vjp_dependencies.emplace_back(ptr, exponent * std::pow(ptr->value,exponent-1));
     return new_node;
 }
 

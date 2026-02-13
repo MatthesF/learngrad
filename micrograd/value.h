@@ -5,17 +5,23 @@
 #include <string>
 #include <vector>
 
+struct ValueImpl;
+
+struct VJP_dependency {
+    std::shared_ptr<ValueImpl> node;
+    double local_grad;
+};
+
 struct ValueImpl {
     double value;
     double grad{0};
 
     std::string op;
     std::vector<std::shared_ptr<ValueImpl>> prev;
-    std::function<void()> backward;
+    std::vector<VJP_dependency> vjp_dependencies;
 
-    ValueImpl(double val) : value{val}, backward{[](){}} {}
+    ValueImpl(double val) : value{val} {}
 };
-
 
 class Value {
     std::shared_ptr<ValueImpl> ptr;
