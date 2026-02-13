@@ -24,7 +24,7 @@ class Neuron{
             return output.tanh();
         }
 
-        std::vector<Value> parameters() const{\
+        std::vector<Value> parameters() const{
             std::vector<Value> params;
             params.reserve(nin+1);
             params.insert(params.end(), weights.begin(), weights.end());
